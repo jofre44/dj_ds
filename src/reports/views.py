@@ -1,9 +1,13 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from profiles.models import Profile
 from django.http import JsonResponse
 from .utils import get_report_image
 from .models import Report
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, TemplateView
+from django.conf import settings
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
 
 # Create your views here.
 
@@ -28,3 +32,26 @@ def create_report_view(request):
         return JsonResponse({'msg': 'send'})
     
     return JsonResponse({})
+
+class UploadTemplateView(TemplateView):
+    template_name = 'reports/from_file.html'
+
+def csv_upload_view(reuest):
+    return HttpResponse()
+
+def render_pdf_view(request, pk):
+    template_path = 'reports/pdf.html'
+    obj = get_object_or_404(Report, pk=pk)
+    context = {'obj': obj}
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'filename="report.pdf"'
+
+    template = get_template(template_path)
+    html = template.render(context)
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+
+    if pisa_status.err:
+       return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
